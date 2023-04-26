@@ -13,87 +13,100 @@ const MONTHS = [
     'December',
 ]
 
-const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+const getDaysInMonth = (date) =>
+    new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
 
 const createArray = (length) => {
-    const result = []
-
+    const result = [];
     for (let i = 0; i < length; i++) {
-        result.push(i)
+        result.push(null);
     }
+    return result;
+};
 
-    return result
-}
 
-const createData = (current) => {
-    const startDay = new Date(current.getFullYear(), current.getMonth(), 1).getDay();
-    const daysInMonth = getDaysInMonth(current);
+// Create the data for the calendar
+const createData = () => {
+    const currentDate = new Date()
+    currentDate.setDate(1)
+    const startDay = currentDate.getDay();
+    const daysInMonth = getDaysInMonth(currentDate)
+    const weeks = createArray(5)
 
-    const weeks = createArray(5);
-    const days = createArray(7);
-    const data = [];
+    let value = null;
 
-    for (const weekIndex of weeks) {
-        const week = {
-            week: weekIndex + 1,
-            days: []
-        };
+    for (let weekIndex=0; weekIndex<weeks.length; weekIndex = weekIndex + 1)
+    {
 
-        for (const dayIndex of days) {
-            const day = dayIndex + 1 - startDay;
-            const isValid = day > 0 && day <= daysInMonth;
+        const days = createArray(7)
 
-            week.days.push({
+        value = {
+            week: weekIndex+1,
+            days: days,
+        }
+        for (let dayIndex = 0; dayIndex < value.days.length; dayIndex = dayIndex + 1){
+            const dayOfMonth = dayIndex  + 2 + weekIndex * 7 - startDay;
+
+            const isValid = dayOfMonth > 0 && dayOfMonth <= daysInMonth;
+            value.days[dayIndex] = {
                 dayOfWeek: dayIndex + 1,
-                value: isValid ? day : null
-            });
-        }
+                value: isValid ? dayOfMonth: ''
+            };
 
-        data.push(week);
+        }
+        weeks[weekIndex] = value
+
     }
+    return weeks;
 
-    return data;
-}
+};
 
+
+// Add a cell to the HTML
 const addCell = (existing, classString, value) => {
-    return /* html */ `
-        <td ${classString}>
-            ${value || ''}
-        </td>
-        ${existing}
-    `
-}
+    let result;
+    result = `
+    ${existing}
+    <td class="${classString}">
+      ${value}
+    </td>
+  `;
+    return result
+};
 
+// create the HTML for the calendar
 const createHtml = (data) => {
-    let result = '';
+    let result = ""
+    for (const { week, days } of data) {
+        let inner = ""
 
-    for (const week of data) {
-        let inner = "";
-        addCell(inner, 'table__cell table__cell_sidebar', `Week ${week.week}`);
+        inner = addCell(inner, "table__cell table__cell_sidebar", `Week ${week}`);
 
-        for (const day of week.days) {
-            let classString = 'table__cell';
-            const isToday = day.value === new Date().getDate();
-            const isWeekend = day.dayOfWeek === 1 || day.dayOfWeek === 7;
-            const isAlternate = week.week % 2 === 0;
+        for (const { dayOfWeek, value } of days) {
+            let classString = "table__cell";
+            const today =
+                value === new Date().getDate() && new Date().getMonth() === new Date().getMonth() //*** sort this
 
-            if (isToday) classString += ' table__cell_today';
-            if (isWeekend) classString += ' table__cell_weekend';
-            if (isAlternate) classString += ' table__cell_alternate';
+            const isWeekend = dayOfWeek === 1 && dayOfWeek === 7
 
-            addCell(inner, classString, day.value);
+            const isAlternate = week % 2 === 0;
+
+            if (today)  classString = `${classString} table__cell_today`;
+            else if (isWeekend) classString =  `${classString} table__cell_weekend`;
+            else if (isAlternate) classString = `${classString} table__cell_alternate`;
+
+            inner = addCell(inner, classString, value);
         }
-
         result += `<tr>${inner}</tr>`;
     }
-
     return result;
-}
+};
 
-// Only edit above
+// Set the title
+const current = new Date();
+document.querySelector("[data-title]").innerText = `${MONTHS[current.getMonth()]} ${current.getFullYear()}`;
 
-const current = new Date()
-document.querySelector('[data-title]').innerText = `${MONTHS[current.getMonth()]} ${current.getFullYear()}`
-
-const data = createData()
-document.querySelector('[data-content]').innerHTML = createHtml(data)
+// Create the calendar data and HTML
+const data = createData();
+document.querySelector("[data-content]").innerHTML = createHtml(data);
